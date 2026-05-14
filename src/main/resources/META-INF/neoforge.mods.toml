@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="pixitymoderation"
+version="1.0.0"
+displayName="Pixity Moderation"
+authors="Howie"
+description='''
+Pixity Moderation (NeoForge)
+'''
+
+[[dependencies.pixitymoderation]]
+modId="neoforge"
+type="required"
+versionRange="[21,)"
+ordering="NONE"
+side="SERVER"
+
+[[dependencies.pixitymoderation]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="SERVER"

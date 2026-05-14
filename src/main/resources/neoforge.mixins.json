@@ -1,0 +1,9 @@
+{
+  "required": true,
+  "package": "org.howie.pixity.moderation.neoforge.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ServerPlayerMixin",
+    "PlayerListMixin"
+  ]
+}
