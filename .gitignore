@@ -1,6 +1,23 @@
-# Project exclude paths
-/.gradle/
-/build/
-/build/classes/java/main/
-/libs/*.jar
-/PixityModerationBackup.zip
+# Gradle
+.gradle/
+build/
+out/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Runtime
+run/
+logs/
+crash-reports/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated jars
+*.jar
+
+# Cache
+caches/
