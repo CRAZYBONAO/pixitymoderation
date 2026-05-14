@@ -27,39 +27,65 @@ public class CrateHologramService {
         var crate = CrateManager.get(crateId);
         if (crate == null) return;
 
-        ArmorStand stand = new ArmorStand(EntityType.ARMOR_STAND, level);
-
-        stand.setPos(
-                pos.getX() + 0.5,
-                pos.getY() + 0.5,
-                pos.getZ() + 0.5
+        List<String> lines = List.of(
+                "&b&l" + crate.display,
+                "&7Right-click to open",
+                "&8Left-click to preview"
         );
 
-        stand.setInvisible(true);
-        stand.setNoGravity(true);
-        stand.setCustomNameVisible(true);
+        double startY = pos.getY() + 1.5;
 
-        stand.setCustomName(
-                CachedText.of(
-                        "&b&l" + crate.display + "\n&7Right-click to open\n&8Left-click to preview"
-                )
-        );
+        for (int i = 0; i < lines.size(); i++) {
 
-        level.addFreshEntity(stand);
+            ArmorStand stand =
+                    new ArmorStand(EntityType.ARMOR_STAND, level);
 
-        holograms.put(key(level, pos), stand);
+            stand.setPos(
+                    pos.getX() + 0.5,
+                    startY - (i * 0.25),
+                    pos.getZ() + 0.5
+            );
+
+            stand.setInvisible(true);
+            stand.setNoGravity(true);
+            stand.setCustomNameVisible(true);
+            stand.getEntityData().set(
+                    ArmorStand.DATA_CLIENT_FLAGS,
+                    (byte) 16
+            );
+
+            stand.setCustomName(
+                    CachedText.of(lines.get(i))
+            );
+
+            level.addFreshEntity(stand);
+
+            holograms.put(
+                    key(level, pos) + ":" + i,
+                    stand
+            );
+        }
     }
 
     public static void remove(ServerLevel level, BlockPos pos) {
 
-        String k = key(level, pos);
+        String base = key(level, pos);
 
-        if (!holograms.containsKey(k)) return;
+        List<String> removeKeys = new ArrayList<>();
 
-        ArmorStand stand = holograms.remove(k);
+        for (String k : holograms.keySet()) {
+            if (k.startsWith(base)) {
+                removeKeys.add(k);
+            }
+        }
 
-        if (stand != null && stand.isAlive()) {
-            stand.discard();
+        for (String k : removeKeys) {
+
+            ArmorStand stand = holograms.remove(k);
+
+            if (stand != null && stand.isAlive()) {
+                stand.discard();
+            }
         }
     }
 
