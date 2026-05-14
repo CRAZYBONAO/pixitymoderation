@@ -238,8 +238,8 @@ public final class AutoModService {
     private static boolean looksLikeLink(String s) {
         String lower = s.toLowerCase(Locale.ROOT);
 
-        return lower.contains("http:
-                lower.contains("https:
+        return lower.contains("http:") ||
+                lower.contains("https:") ||
                 lower.contains("www.") ||
                 lower.matches(".*\\b[a-z0-9\\-]+\\.(com|net|org|gg|io|co|xyz|shop)\\b.*");
     }
