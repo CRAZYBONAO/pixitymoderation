@@ -25,7 +25,6 @@ repositories {
     maven("https://cursemaven.com")
     maven("https://api.modrinth.com/maven")
 
-    // ✅ Scoped Cobblemon repo (THIS FIXES YOUR ISSUE)
     maven("https://maven.cobblemon.com/releases") {
         content {
             includeGroup("com.cobblemon")
@@ -39,13 +38,11 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24")
 
-    // Compile
     implementation("net.kyori:adventure-api:4.17.0")
     implementation("net.kyori:adventure-text-serializer-gson:4.17.0")
 
     implementation("org.yaml:snakeyaml:2.2")
 
-    // Bundle + relocate
     jarJar("net.kyori:adventure-api:4.17.0")
     jarJar("net.kyori:adventure-text-serializer-gson:4.17.0")
     jarJar("net.kyori:examination-api:1.3.0")

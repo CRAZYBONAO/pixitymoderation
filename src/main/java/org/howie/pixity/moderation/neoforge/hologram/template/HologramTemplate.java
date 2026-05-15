@@ -1,4 +1,8 @@
 package org.howie.pixity.moderation.neoforge.hologram.template;
 
-public class HologramTemplate {
+import org.howie.pixity.moderation.neoforge.hologram.Hologram;
+
+public interface HologramTemplate {
+
+    void apply(Hologram hologram);
 }

@@ -58,4 +58,8 @@ public final class PlaytimeService {
     public void onShutdown(ServerStoppingEvent e) {
         store.save(playtime);
     }
+
+    public Map<UUID, Long> getAll() {
+        return playtime;
+    }
 }

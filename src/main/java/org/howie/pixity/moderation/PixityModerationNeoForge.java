@@ -18,7 +18,6 @@ import java.nio.file.Files;
 import java.util.List;
 import java.sql.Connection;
 
-// CHAT
 import org.howie.pixity.moderation.chat.*;
 import org.howie.pixity.moderation.neoforge.announce.AnnouncementsCommands;
 import org.howie.pixity.moderation.neoforge.announce.AnnouncementsConfigStore;
@@ -31,21 +30,23 @@ import org.howie.pixity.moderation.neoforge.chat.NickCommands;
 import org.howie.pixity.moderation.neoforge.chat.cosmetics.*;
 import org.howie.pixity.moderation.neoforge.chatcontrol.*;
 
-// ALTS
 import org.howie.pixity.moderation.neoforge.alts.*;
 import org.howie.pixity.moderation.neoforge.alts.smart.*;
 
-// CORE
 import org.howie.pixity.moderation.neoforge.chatextras.*;
 import org.howie.pixity.moderation.neoforge.chatgames.*;
 import org.howie.pixity.moderation.neoforge.combat.CombatTagListener;
 import org.howie.pixity.moderation.neoforge.combat.CombatTagService;
+import org.howie.pixity.moderation.neoforge.contribution.ContributionCommands;
+import org.howie.pixity.moderation.neoforge.contribution.ContributionService;
+import org.howie.pixity.moderation.neoforge.contribution.SQLiteContributionStore;
 import org.howie.pixity.moderation.neoforge.crate.*;
 import org.howie.pixity.moderation.neoforge.fishing.*;
 import org.howie.pixity.moderation.neoforge.fishing.deliveries.DeliveryRewardManager;
 import org.howie.pixity.moderation.neoforge.fishing.events.FishingEventManager;
 import org.howie.pixity.moderation.neoforge.freeze.*;
 import org.howie.pixity.moderation.neoforge.giveaway.*;
+import org.howie.pixity.moderation.neoforge.hologram.HologramCommands;
 import org.howie.pixity.moderation.neoforge.inspect.*;
 import org.howie.pixity.moderation.neoforge.invsee.InvSeeCommands;
 import org.howie.pixity.moderation.neoforge.item.ItemMetaCommands;
@@ -98,7 +99,6 @@ import org.howie.pixity.moderation.neoforge.rank.RankService;
 import org.howie.pixity.moderation.neoforge.jail.SQLiteJailStore;
 import org.howie.pixity.moderation.neoforge.milestones.command.MilestonesCommand;
 
-// TAB
 import org.howie.pixity.moderation.neoforge.tab.TabListTicker;
 import org.howie.pixity.moderation.neoforge.voucher.VoucherCommand;
 import org.howie.pixity.moderation.neoforge.voucher.VoucherListener;
@@ -108,10 +108,8 @@ import org.howie.pixity.moderation.tab.TabListConfigManager;
 import org.howie.pixity.moderation.neoforge.economy.*;
 import org.howie.pixity.moderation.neoforge.fly.*;
 
-// STATE
 import org.howie.pixity.moderation.neoforge.state.*;
 
-// AFK
 import org.howie.pixity.moderation.neoforge.afk.*;
 
 @Mod("pixitymoderation")
@@ -127,6 +125,8 @@ public final class PixityModerationNeoForge {
     public static ActiveAbilityManager ACTIVE_ABILITIES;
     public static EconomyService ECONOMY_SERVICE;
     public static MilestonePlayerService MILESTONE_PLAYERS;
+    public static PlaytimeService PLAYTIME_SERVICE;
+    public static ContributionService CONTRIBUTION_SERVICE;
 
 
 
@@ -154,21 +154,16 @@ public final class PixityModerationNeoForge {
 
         skillService = new SkillService(LOGGER, skillsStore);
 
-// CRITICAL FIX
         SKILL_SERVICE = skillService;
 
-// engines
         STAT_ENGINE = new StatEngine(SKILL_SERVICE);
         ABILITY_ENGINE = new AbilityEngine(SKILL_SERVICE);
         ACTIVE_ABILITIES = new ActiveAbilityManager();
 
-// register autosave
         NeoForge.EVENT_BUS.register(SKILL_SERVICE);
 
-// XP system
         SkillXpListener.init(SKILL_SERVICE);
 
-// listeners
         NeoForge.EVENT_BUS.register(CombatListener.class);
         new TrainerListener(SKILL_SERVICE);
         NeoForge.EVENT_BUS.register(new AbilityListener());
@@ -199,9 +194,7 @@ public final class PixityModerationNeoForge {
 
 
 
-        // =========================
-        // 🏆 POKEDEX HOLOGRAM REFRESH LOOP
-        // =========================
+
 
         DeliveryRewardManager.init();
 
@@ -226,7 +219,6 @@ public final class PixityModerationNeoForge {
         );
 
 
-// also load existing listings into queue
         for (var l : AuctionDatabase.getActive()) {
             AuctionExpiryScheduler.schedule(server, l);
         }
@@ -235,7 +227,6 @@ public final class PixityModerationNeoForge {
     @SubscribeEvent
     public void onServerTick(net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) {
 
-        // run every second
         if (e.getServer().getTickCount() % 20 != 0) return;
 
         FishingEventManager.tick();
@@ -265,7 +256,7 @@ public final class PixityModerationNeoForge {
 
     @SubscribeEvent
     public void onServerStopped(ServerStoppingEvent event) {
-        AuctionDatabase.saveAsync(); // or saveSync if you want guaranteed write
+        AuctionDatabase.saveAsync();
     }
 
     public static PixityModerationNeoForge getInstance() {
@@ -289,7 +280,6 @@ public final class PixityModerationNeoForge {
     private final AfkService afk;
     private final AltsService alts;
     private final SmartAltService smartAlts;
-    private final PlaytimeService playtime;
     private final PunishmentManager punish;
     private final FreezeService freeze;
     private final JailService jail;
@@ -388,9 +378,7 @@ public final class PixityModerationNeoForge {
         NickHolder.INSTANCE = nickMgr;
 
 
-        // =========================
-// MAIL
-// =========================
+
 
 
 
@@ -410,6 +398,18 @@ public final class PixityModerationNeoForge {
                         LOGGER,
                         mailCfg,
                         mailStore
+                );
+
+        SQLiteContributionStore contributionStore =
+                new SQLiteContributionStore(
+                        LOGGER,
+                        "jdbc:sqlite:config/pixity/contributions.db"
+                );
+
+        CONTRIBUTION_SERVICE =
+                new ContributionService(
+                        LOGGER,
+                        contributionStore
                 );
 
         NeoForge.EVENT_BUS.register(
@@ -465,9 +465,7 @@ public final class PixityModerationNeoForge {
         TrainerMilestoneListener.register();
 
         ProfessorMilestoneListener.register();
-        // =========================
-// RULES
-// =========================
+
 
         rulesCfg =
                 new RulesConfigManager(
@@ -497,21 +495,13 @@ public final class PixityModerationNeoForge {
 
 
 
-        // =========================
-        // NOTES
-        // =========================
         SQLiteNotesStore notesStore = new SQLiteNotesStore(LOGGER, dataDir);
         notes = new NotesService(LOGGER, notesStore);
 
-        // =========================
-        // REPORTS
-        // =========================
+
         ReportsStore reportsStore = new ReportsStore(LOGGER, dataDir);
         reports = new ReportsService(LOGGER, reportsStore, ranks);
 
-        // =========================
-// PLAYTIME
-// =========================
 
         playtimeStore =
                 new SQLitePlaytimeStore(
@@ -519,9 +509,12 @@ public final class PixityModerationNeoForge {
                         "jdbc:sqlite:" + dataDir.resolve("playtime.db")
                 );
 
-        playtime = new PlaytimeService(playtimeStore);
+        PLAYTIME_SERVICE =
+                new PlaytimeService(
+                        playtimeStore
+                );
 
-        NeoForge.EVENT_BUS.register(playtime);
+        NeoForge.EVENT_BUS.register(PLAYTIME_SERVICE);
 
         PlaytimeLevelsConfig levelsConfig =
                 new PlaytimeLevelsConfig(dataDir);
@@ -531,10 +524,6 @@ public final class PixityModerationNeoForge {
 
 
 
-
-        // =========================
-        // ECONOMY
-        // =========================
 
         SQLiteEconomyStore econStore =
                 new SQLiteEconomyStore(
@@ -546,9 +535,6 @@ public final class PixityModerationNeoForge {
 
         RewardExecutor.init(economy);
 
-        // =========================
-// SPAWNERS
-// =========================
         PokePartyConfig.load();
 
         spawnerConfig =
@@ -598,9 +584,7 @@ public final class PixityModerationNeoForge {
         NeoForge.EVENT_BUS.register(new ChatGamesListener());
 
 
-        // =========================
-        // FLY
-        // =========================
+
 
         SQLiteFlyTimeStore flyStore =
                 new SQLiteFlyTimeStore(
@@ -614,9 +598,7 @@ public final class PixityModerationNeoForge {
         NeoForge.EVENT_BUS.register(new FlyTimeListener(fly));
 
 
-        // =========================
-        // AFK
-        // =========================
+
 
         AfkConfigStore afkConfigStore =
                 new AfkConfigStore(LOGGER, dataDir);
@@ -638,9 +620,6 @@ public final class PixityModerationNeoForge {
 
 
 
-        // =========================
-        // TP
-        // =========================
 
         SQLiteTpStore tpStore =
                 new SQLiteTpStore(LOGGER, dataDir);
@@ -655,9 +634,6 @@ public final class PixityModerationNeoForge {
 
         BackService.init(LOGGER, backStore);
 
-        //
-        // GIVEAWAY PROMPTS
-        //
 
         giveawayPrompts = new GiveawayChatPromptService();
         NeoForge.EVENT_BUS.register(
@@ -665,9 +641,6 @@ public final class PixityModerationNeoForge {
         );
         NeoForge.EVENT_BUS.register(new PokeGiveHook());
 
-        // =========================
-        // WARMUP
-        // =========================
 
         WarmupConfigManager warmCfg =
                 new WarmupConfigManager(
@@ -687,9 +660,7 @@ public final class PixityModerationNeoForge {
         NeoForge.EVENT_BUS.register(new TeleportWarmupListener(warmup));
 
 
-        // =========================
-        // TPA
-        // =========================
+
 
         TpaStore tpaStore =
                 new TpaStore(LOGGER, dataDir.resolve("tptoggle.json"));
@@ -701,16 +672,12 @@ public final class PixityModerationNeoForge {
                 tpaStore,
                 afk
         );
-        //
-         // FISHING
-         //
+
 
         NeoForge.EVENT_BUS.register(new FishingListener());
 
 
-        // =========================
-// ALTS
-// =========================
+
 
         SQLiteAltsStore altsStore =
                 new SQLiteAltsStore(
@@ -721,9 +688,7 @@ public final class PixityModerationNeoForge {
         alts = new AltsService(LOGGER, altsStore);
 
 
-// =========================
-// SMART ALTS
-// =========================
+
 
         SQLiteSmartAltStore smartStore =
                 new SQLiteSmartAltStore(
@@ -733,14 +698,11 @@ public final class PixityModerationNeoForge {
 
         smartAlts = new SmartAltService(LOGGER, smartStore);
 
-// REGISTER LISTENER (IMPORTANT)
+
         NeoForge.EVENT_BUS.register(
                 new SmartAltListener(smartAlts, ranks)
         );
 
-        // =========================
-        // CHAT CONTROL
-        // =========================
 
         chatCtlStore =
                 new ChatControlConfigStore(LOGGER, dataDir);
@@ -750,9 +712,7 @@ public final class PixityModerationNeoForge {
                         chatCtlStore.loadOrCreate()
                 );
 
-        // =========================
-        // CHAT EXTRAS
-        // =========================
+
 
         chatExtrasStore =
                 new ChatExtrasConfigStore(LOGGER, dataDir);
@@ -770,9 +730,6 @@ public final class PixityModerationNeoForge {
                 new MuteManager(LOGGER, dataDir.resolve("mutes.json"));
 
 
-        // =========================
-        // MSG
-        // =========================
 
         ignores =
                 new IgnoreManager(
@@ -801,9 +758,6 @@ public final class PixityModerationNeoForge {
 
 
 
-        // =========================
-        // PUNISHMENTS
-        // =========================
 
         SQLitePunishStore punishStore =
                 new SQLitePunishStore(LOGGER, dataDir);
@@ -818,9 +772,6 @@ public final class PixityModerationNeoForge {
                 new BanEnforcementListener(punish)
         );
 
-        // =========================
-        // FREEZE
-        // =========================
 
         FreezeConfigStore freezeCfgStore =
                 new FreezeConfigStore(LOGGER, dataDir);
@@ -837,9 +788,6 @@ public final class PixityModerationNeoForge {
 
 
 
-        // =========================
-        // JAIL
-        // =========================
 
         SQLiteJailStore jailStore =
                 new SQLiteJailStore(
@@ -872,9 +820,7 @@ public final class PixityModerationNeoForge {
                 );
 
 
-        // =========================
-// JOIN / LEAVE
-// =========================
+
 
         joinLeaveCfg =
                 new JoinLeaveConfigManager(
@@ -1011,7 +957,7 @@ public final class PixityModerationNeoForge {
                         jail,
                         economy,
                         fly,
-                        playtime,
+                        PLAYTIME_SERVICE,
                         ignores,
                         ranks,
                         cosmeticsService
@@ -1285,8 +1231,9 @@ public final class PixityModerationNeoForge {
         new TpCommands(tp, warmup, ranks).register(d);
         new TpGuiCommands(tp, warmup, prompts, ranks).register(d);
         new TpaCommands(tpa, warmup, ranks).register(d);
-        new PlaytimeCommands(playtime).register(d);
+        new PlaytimeCommands(PLAYTIME_SERVICE).register(d);
         FishingCommands.register(d);
+        HologramCommands.register(d);
 
 
         auctionCommands = new AuctionCommands(economy);
@@ -1336,7 +1283,12 @@ public final class PixityModerationNeoForge {
 
 // COMMAND
         new ShopCommand(shopService, ranks, econ).register(d);
-
+        new ContributionCommands(
+                CONTRIBUTION_SERVICE
+        ).register(d);
+        new ContributionCommands(
+                CONTRIBUTION_SERVICE
+        ).register(d);
 // SELL WAND
         SellWandCommand.register(d);
 
@@ -1393,7 +1345,7 @@ public final class PixityModerationNeoForge {
         ).register(d);
 
         new PlaytimeLevelsCommand(
-                playtime,
+                PLAYTIME_SERVICE,
                 playtimeStore,
                 levels
         ).register(d);
@@ -1432,7 +1384,7 @@ public final class PixityModerationNeoForge {
     @SubscribeEvent
     public void onShutdown(ServerStoppingEvent e) {
 
-        playtime.saveAll();
+        PLAYTIME_SERVICE.saveAll();
         economy.saveAll();
     }
 

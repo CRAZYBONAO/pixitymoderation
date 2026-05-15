@@ -1,4 +1,8 @@
 package org.howie.pixity.moderation.neoforge.text;
 
-public class RichTokenType {
+public enum RichTokenType {
+
+    TEXT,
+
+    GLYPH
 }
